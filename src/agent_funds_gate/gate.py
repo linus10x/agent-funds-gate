@@ -1,0 +1,77 @@
+from __future__ import annotations
+
+from .decision import GateDecision
+from .screening import ScreenResult, ScreenStatus
+
+OFAC_CITE = "31 CFR Chapter V (OFAC) - strict-liability SDN screening"
+
+# The single invariant that defines this gate: the screen must have COMPLETED
+# (terminal, with a sequence number) strictly BEFORE the transfer executed.
+ORDERING_ASSERTION = "screen_completion_precedes_execution"
+
+
+class FundsGate:
+    """Fail-closed authorization gate for value-moving agent actions.
+
+    A transfer is ALLOWed only if a version-pinned OFAC SDN screen returned
+    CLEAR *and completed before* the transfer executed. ``naive_mode=True``
+    strips the ordering enforcement to reproduce the false-pass the gate exists
+    to prevent.
+    """
+
+    def __init__(self, required_sdn_version: str, *, naive_mode: bool = False):
+        self.required_sdn_version = required_sdn_version
+        self.naive_mode = naive_mode
+
+    def authorize(
+        self, *, subject: str, transfer_seq: int, screen: ScreenResult | None
+    ) -> GateDecision:
+        evidence = {
+            "subject": subject,
+            "transfer_seq": transfer_seq,
+            "screen_status": screen.status.value if screen else None,
+            "completed_seq": screen.completed_seq if screen else None,
+            "sdn_list_version": screen.sdn_list_version if screen else None,
+            "naive_mode": self.naive_mode,
+        }
+
+        # The defeat: a naive check only asks "did a clear screen exist?" and
+        # ignores whether it completed before the money moved. This is the hole.
+        if self.naive_mode:
+            if screen is not None and screen.status is ScreenStatus.CLEAR:
+                return self._allow(screen, evidence)
+            return self._deny("naive_no_clear_screen", screen, evidence)
+
+        # Enforced: every condition must hold, in order, or the transfer is denied.
+        if screen is None:
+            return self._deny("screen_present", screen, evidence)
+        if screen.status is ScreenStatus.HIT:
+            return self._deny("sdn_hit", screen, evidence)
+        if screen.status is ScreenStatus.ERROR:
+            return self._deny("screen_error", screen, evidence)
+        if screen.completed_seq is None or screen.completed_seq >= transfer_seq:
+            # PENDING (no completed_seq) or completed after the transfer fired.
+            return self._deny(ORDERING_ASSERTION, screen, evidence)
+        if screen.sdn_list_version != self.required_sdn_version:
+            return self._deny("sdn_version_pinned", screen, evidence)
+        return self._allow(screen, evidence)
+
+    def _allow(self, screen: ScreenResult, evidence: dict) -> GateDecision:
+        return GateDecision(
+            decision="ALLOW",
+            rule_cite=None,
+            failing_assertion=None,
+            sdn_list_version=screen.sdn_list_version,
+            evidence=evidence,
+        )
+
+    def _deny(
+        self, failing_assertion: str, screen: ScreenResult | None, evidence: dict
+    ) -> GateDecision:
+        return GateDecision(
+            decision="DENY",
+            rule_cite=OFAC_CITE,
+            failing_assertion=failing_assertion,
+            sdn_list_version=screen.sdn_list_version if screen else None,
+            evidence=evidence,
+        )

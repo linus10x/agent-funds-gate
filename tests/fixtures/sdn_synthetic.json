@@ -1,0 +1,9 @@
+{
+  "_comment": "Synthetic, obviously-fake SDN entries for tests only. This is NOT the real OFAC SDN list. Deployers wire their own version-pinned list; none is bundled.",
+  "sdn_list_version": "2026-06-17",
+  "blocked": [
+    "BLOCKED PERSON ALPHA",
+    "BLOCKED ENTITY BRAVO LLC",
+    "SANCTIONED VESSEL CHARLIE"
+  ]
+}
