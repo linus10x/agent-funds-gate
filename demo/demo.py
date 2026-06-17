@@ -3,7 +3,13 @@
 Shows the race winning against a naive check, then the gate catching it.
 """
 
-from agent_funds_gate import FundsGate, ScreenResult, ScreenStatus
+import sys
+from pathlib import Path
+
+# Run straight from a fresh clone, no install needed.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
+
+from agent_funds_gate import FundsGate, ScreenResult, ScreenStatus  # noqa: E402
 
 VERSION = "2026-06-17"
 SUBJECT = "BLOCKED PERSON ALPHA"

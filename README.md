@@ -17,10 +17,11 @@ The gate's whole value is the ordering check. The test proves it.
 ## Run it in 90 seconds
 
 ```bash
-pip install -e .
-pytest                 # 9 tests, all green
-python demo/demo.py    # the defeat, then the gate
+pytest                 # 9 tests green (src is on the path via pyproject)
+python demo/demo.py    # the defeat, then the gate -- no install needed
 ```
+
+(`pip install -e .` only if you want to import `agent_funds_gate` from elsewhere.)
 
 ## What this enforces
 
