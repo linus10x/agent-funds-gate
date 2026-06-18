@@ -8,7 +8,8 @@ An agent fires a $250,000 transfer at sequence 10. The OFAC screen for the same 
 
 ```
 [A] naive gate   -> ALLOW  ($250,000 sent; screen had not completed)
-[B] this gate    -> DENY   {rule_cite: "31 CFR Chapter V (OFAC)...",
+[B] this gate    -> DENY   {rule_cite: "31 CFR 501.603/501.604; strict liability under
+                                        IEEPA, 50 U.S.C. 1705",
                             failing_assertion: "screen_completion_precedes_execution"}
 ```
 
@@ -38,11 +39,13 @@ The decision is a structured object — `{decision, rule_cite, failing_assertion
 
 ## What this does NOT catch
 
-- A **compromised or colluding second approver**.
-- **Multi-turn collusion** spread across several actions.
-- A **forged screen result.** v1 trusts the `ScreenResult` it is handed and does not cryptographically verify it. Here, "the screen COMPLETED" means a terminal result stamped with a monotonic sequence before execution. In production, "completed" must mean a *signed* result from the screening service, verified before execution — that signature check is the boundary of v1, named here rather than hand-waved.
-- A correct screen against a **poisoned SDN list** (garbage in).
-- Sub-abstraction **clock skew** — the gate uses a monotonic sequence, not wall-clock time.
+The full, authoritative scope-limit list lives in
+[CONTROL_STATEMENT.md](CONTROL_STATEMENT.md#what-this-does-not-catch-scope-limits) so the
+two never drift. In short: it trusts the screen object and the SDN list it is handed (a
+forged or unsigned result, or a poisoned list, defeats it), it does no name or fuzzy
+matching, no 50%-rule ownership, no license determinations, and no non-payment actions. It
+does not catch a compromised second approver or multi-turn collusion, and it orders on a
+monotonic sequence, not wall-clock time.
 
 ## Verify the polarity yourself (60 seconds)
 

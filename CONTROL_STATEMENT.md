@@ -88,9 +88,26 @@ python3 -m pytest tests/test_gate.py::test_race_screen_resolves_after_transfer_d
 
 ## What this does NOT catch (scope limits)
 
-This is one control on one ordering invariant. It assumes the screen and SDN list are
-trustworthy inputs. It does not verify the SDN list is current beyond a pinned-version
-check, does not perform name matching or fuzzy-match tuning, does not cover the 50%-rule
-on ownership, does not address license determinations, and does not screen non-payment
-actions. It proves one thing well: a clean screen of the right party completed before the
-money moved, or the transfer is denied.
+This is the authoritative scope list for the gate. README.md points here so the two never
+drift. This is one control on one ordering invariant, and it assumes the screen object and
+the SDN list it is handed are trustworthy inputs. It does NOT catch:
+
+- **SDN-list currency beyond a pinned-version check.** It confirms the screen ran against
+  the pinned list version; it does not confirm that version is the current OFAC list.
+- **Name matching / fuzzy-match tuning.** It does not decide whether a name is a match.
+- **The 50%-rule on ownership** (an entity owned 50%+ by blocked persons).
+- **License determinations** (whether an otherwise-prohibited transfer is authorized).
+- **Non-payment actions.** It governs value-moving transfers, not other agent actions.
+- **A forged or unsigned screen result.** v1 trusts the `ScreenResult` it is handed and
+  does not cryptographically verify it. Here "completed" means a terminal result stamped
+  with a monotonic sequence before execution. In production, "completed" must mean a
+  *signed* result from the screening service, verified before execution; that signature
+  check is the boundary of v1, named here rather than hand-waved.
+- **A correct screen run against a poisoned SDN list** (garbage in).
+- **A compromised or colluding second approver**, and **multi-turn collusion** spread
+  across several actions.
+- **Clock skew below the abstraction.** The gate orders on a monotonic sequence, not
+  wall-clock time.
+
+It proves one thing well: a clean screen of the right party, against the pinned list
+version, completed before the money moved, or the transfer is denied.
