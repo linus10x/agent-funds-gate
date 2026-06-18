@@ -3,7 +3,16 @@ from __future__ import annotations
 from .decision import GateDecision
 from .screening import ScreenResult, ScreenStatus
 
-OFAC_CITE = "31 CFR Chapter V (OFAC) - strict-liability SDN screening"
+# Precise anchor pulled from the canonical reg SSOT (active_regs.yaml:
+# ofac_sdn_screening) and verified against eCFR/OFAC primary sources: a prohibited
+# transfer to an SDN must be blocked (31 CFR 501.603) or rejected (31 CFR 501.604)
+# before value moves, and civil liability is STRICT under IEEPA (50 U.S.C. 1705)
+# regardless of intent. The strict-liability standard is why a screen that merely
+# *exists* is not enough -- it must complete before the transfer, or you are liable.
+OFAC_CITE = (
+    "31 CFR 501.603 (block SDN property) / 501.604 (reject prohibited transfer); "
+    "strict liability under IEEPA, 50 U.S.C. 1705"
+)
 
 # The single invariant that defines this gate: the screen must have COMPLETED
 # (terminal, with a sequence number) strictly BEFORE the transfer executed.

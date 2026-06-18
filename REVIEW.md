@@ -67,3 +67,15 @@ in `naive_mode` the race is ALLOW on purpose.
 Reviewer-passed and polarity-proven. Release to public GitHub stays news-pegged
 and owner-tap. Framing law: "we attacked our own gate," never "caught a real
 incident."
+
+## Update — Task 2 (cite-correct, 2026-06-18)
+The generic `OFAC_CITE` ("31 CFR Chapter V (OFAC)") was replaced with the precise
+subsection, sourced from the canonical reg SSOT (`active_regs.yaml`, id
+`ofac_sdn_screening`) and verified against eCFR/OFAC primary sources:
+**31 CFR 501.603 (block SDN property) / 501.604 (reject prohibited transfer);
+strict liability under IEEPA, 50 U.S.C. 1705.** A new test
+(`test_cite_carries_precise_ofac_subsection`) pins the subsection so a later
+generic-ization regresses RED. Suite 16 -> **17 green**; polarity re-proven
+(ordering check removed -> centerpiece RED -> restore -> 17 green). The 1-page
+`CONTROL_STATEMENT.md` was added (reg cite, failure mode, the assertion, the named
+screen-completes-after-transfer false-pass, SR 26-2 confirmed-facts context).

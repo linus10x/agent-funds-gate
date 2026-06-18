@@ -17,7 +17,7 @@ The gate's whole value is the ordering check. The test proves it.
 ## Run it in 90 seconds
 
 ```bash
-pytest                 # 16 tests green (src is on the path via pyproject)
+pytest                 # 17 tests green (src is on the path via pyproject)
 python demo/demo.py    # the defeat, then the gate -- no install needed
 ```
 

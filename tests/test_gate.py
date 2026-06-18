@@ -173,3 +173,18 @@ def test_nonpositive_seqs_deny():
     d = gate.authorize(subject="ACME CORP", transfer_seq=-1, screen=_clear(seq=-5))
     assert d.decision == "DENY"
     assert d.failing_assertion == "seq_out_of_range"
+
+
+def test_cite_carries_precise_ofac_subsection():
+    """The cite an FSI examiner asks for is a SUBSECTION, not 'OFAC' in general.
+    Lock the precise anchors so a later generic-ization regresses RED:
+    31 CFR 501.603 (block SDN property) / 501.604 (reject prohibited transfer),
+    with strict liability under IEEPA, 50 U.S.C. 1705. Sourced from the canonical
+    reg SSOT (active_regs.yaml: ofac_sdn_screening). Every DENY carries it."""
+    assert "501.603" in OFAC_CITE
+    assert "501.604" in OFAC_CITE
+    assert "1705" in OFAC_CITE
+    gate = FundsGate(VERSION)
+    deny = gate.authorize(subject="ACME CORP", transfer_seq=10, screen=None)
+    assert deny.rule_cite == OFAC_CITE
+    assert "501.604" in deny.rule_cite
