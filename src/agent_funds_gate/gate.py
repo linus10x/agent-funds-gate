@@ -26,6 +26,15 @@ class FundsGate:
     def authorize(
         self, *, subject: str, transfer_seq: int, screen: ScreenResult | None
     ) -> GateDecision:
+        # Validate input SHAPE first. A fail-closed control denies malformed
+        # input; it must never raise (an exception in a "should I block?" check
+        # can be swallowed by the caller and resolve to "proceed"). bool is an
+        # int subtype in Python (True == 1), so exclude it explicitly.
+        if not isinstance(transfer_seq, int) or isinstance(transfer_seq, bool):
+            return self._deny_bare("transfer_seq_invalid", subject, transfer_seq)
+        if screen is not None and not isinstance(screen, ScreenResult):
+            return self._deny_bare("screen_malformed", subject, transfer_seq)
+
         evidence = {
             "subject": subject,
             "transfer_seq": transfer_seq,
@@ -49,11 +58,25 @@ class FundsGate:
             return self._deny("sdn_hit", screen, evidence)
         if screen.status is ScreenStatus.ERROR:
             return self._deny("screen_error", screen, evidence)
+        # The screen must be ABOUT the party being paid. The gate takes the
+        # subject separately from the screen, so an unbound clean screen of a
+        # different party would otherwise authorize a sanctioned payment.
+        if screen.subject != subject:
+            return self._deny("screen_subject_mismatch", screen, evidence)
         if screen.completed_seq is None or screen.completed_seq >= transfer_seq:
             # PENDING (no completed_seq) or completed after the transfer fired.
             return self._deny(ORDERING_ASSERTION, screen, evidence)
+        # Sequence values are positions of a monotonic counter at execution.
+        # Negative/zero values are uninitialized or spoofed -> fail closed.
+        if transfer_seq <= 0 or screen.completed_seq <= 0:
+            return self._deny("seq_out_of_range", screen, evidence)
         if screen.sdn_list_version != self.required_sdn_version:
             return self._deny("sdn_version_pinned", screen, evidence)
+        # Affirm the one safe status POSITIVELY, rather than reaching ALLOW by
+        # falling through the HIT/ERROR special-cases. Catches an inconsistent
+        # PENDING-with-seq result and any ScreenStatus member added later.
+        if screen.status is not ScreenStatus.CLEAR:
+            return self._deny("screen_not_clear", screen, evidence)
         return self._allow(screen, evidence)
 
     def _allow(self, screen: ScreenResult, evidence: dict) -> GateDecision:
@@ -63,6 +86,24 @@ class FundsGate:
             failing_assertion=None,
             sdn_list_version=screen.sdn_list_version,
             evidence=evidence,
+        )
+
+    def _deny_bare(
+        self, failing_assertion: str, subject: str, transfer_seq: object
+    ) -> GateDecision:
+        """Deny on malformed input, before a full evidence dict can be built
+        from an object the gate cannot trust to have the expected fields."""
+        return GateDecision(
+            decision="DENY",
+            rule_cite=OFAC_CITE,
+            failing_assertion=failing_assertion,
+            sdn_list_version=None,
+            evidence={
+                "subject": subject,
+                "transfer_seq": transfer_seq,
+                "naive_mode": self.naive_mode,
+                "malformed": True,
+            },
         )
 
     def _deny(

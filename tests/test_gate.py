@@ -98,3 +98,78 @@ def test_gate_removed_lets_race_through():
     gate = FundsGate(VERSION, naive_mode=True)
     d = gate.authorize(subject="ACME CORP", transfer_seq=10, screen=_clear(seq=15))
     assert d.decision == "ALLOW"
+
+
+# --- Hardening tests added after the independent code-reviewer pass (2026-06-18).
+# Each guards a confirmed false-pass / crash path on this fail-closed control.
+
+def test_screen_for_different_subject_denies():
+    """The binding the demo is built on: a CLEAR screen of party A must NOT
+    authorize a transfer to party B. The gate takes `subject` separately from
+    `screen.subject`; if it never compares them, a clean screen of ACME would
+    clear a wire to a sanctioned party. That is an OFAC violation -> DENY."""
+    gate = FundsGate(VERSION)
+    screen = ScreenResult(ScreenStatus.CLEAR, VERSION, 5, "ACME CORP")
+    d = gate.authorize(subject="BLOCKED PERSON ALPHA", transfer_seq=10, screen=screen)
+    assert d.decision == "DENY"
+    assert d.failing_assertion == "screen_subject_mismatch"
+    assert d.rule_cite == OFAC_CITE
+
+
+def test_tie_completed_equals_transfer_denies():
+    """Boundary lock: a screen that completed at the SAME seq as the transfer
+    did not complete strictly before it -> DENY. Locks the `>=` so a later
+    'cleanup' to `>` can't silently reopen the race."""
+    gate = FundsGate(VERSION)
+    d = gate.authorize(subject="ACME CORP", transfer_seq=10, screen=_clear(seq=10))
+    assert d.decision == "DENY"
+    assert d.failing_assertion == "screen_completion_precedes_execution"
+
+
+def test_none_transfer_seq_fails_closed():
+    """Malformed input fails closed: a None transfer_seq must DENY, never raise.
+    An exception in a 'should I block?' check can resolve to 'proceed'."""
+    gate = FundsGate(VERSION)
+    d = gate.authorize(subject="ACME CORP", transfer_seq=None, screen=_clear(seq=5))
+    assert d.decision == "DENY"
+    assert d.failing_assertion == "transfer_seq_invalid"
+
+
+def test_bool_transfer_seq_fails_closed():
+    """A bool is an int subtype in Python (True == 1); a control must reject it
+    rather than treat True as seq 1 -> DENY."""
+    gate = FundsGate(VERSION)
+    d = gate.authorize(subject="ACME CORP", transfer_seq=True, screen=_clear(seq=0))
+    assert d.decision == "DENY"
+    assert d.failing_assertion == "transfer_seq_invalid"
+
+
+def test_malformed_screen_fails_closed():
+    """A non-ScreenResult object handed in as the screen must DENY, not crash."""
+    class Bogus:
+        pass
+    gate = FundsGate(VERSION)
+    d = gate.authorize(subject="ACME CORP", transfer_seq=10, screen=Bogus())
+    assert d.decision == "DENY"
+    assert d.failing_assertion == "screen_malformed"
+
+
+def test_pending_with_completed_seq_denies():
+    """Internally inconsistent result (status PENDING but a terminal seq stamped)
+    must DENY by positively requiring CLEAR, not ALLOW by falling through the
+    HIT/ERROR special-cases. Also future-proofs against new ScreenStatus members."""
+    gate = FundsGate(VERSION)
+    screen = ScreenResult(ScreenStatus.PENDING, VERSION, 5, "ACME CORP")
+    d = gate.authorize(subject="ACME CORP", transfer_seq=10, screen=screen)
+    assert d.decision == "DENY"
+    assert d.failing_assertion == "screen_not_clear"
+
+
+def test_nonpositive_seqs_deny():
+    """Negative/zero sequence values are nonsense for a monotonic execution
+    counter (uninitialized/spoofed) and must DENY even when the ordering relation
+    holds numerically."""
+    gate = FundsGate(VERSION)
+    d = gate.authorize(subject="ACME CORP", transfer_seq=-1, screen=_clear(seq=-5))
+    assert d.decision == "DENY"
+    assert d.failing_assertion == "seq_out_of_range"

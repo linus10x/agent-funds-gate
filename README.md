@@ -17,7 +17,7 @@ The gate's whole value is the ordering check. The test proves it.
 ## Run it in 90 seconds
 
 ```bash
-pytest                 # 9 tests green (src is on the path via pyproject)
+pytest                 # 16 tests green (src is on the path via pyproject)
 python demo/demo.py    # the defeat, then the gate -- no install needed
 ```
 
@@ -26,10 +26,13 @@ python demo/demo.py    # the defeat, then the gate -- no install needed
 ## What this enforces
 
 A transfer is `ALLOW` only if all hold, else `DENY` with the failed assertion named:
-1. a screen is present (`screen_present`),
-2. it is not an SDN hit (`sdn_hit`) and did not error (`screen_error`),
-3. it **completed before** the transfer fired — `completed_seq < transfer_seq` (`screen_completion_precedes_execution`),
-4. it ran against the pinned SDN-list version (`sdn_version_pinned`).
+1. the inputs are well-formed — a real screen object and a valid positive sequence (`screen_malformed` / `transfer_seq_invalid` / `seq_out_of_range`); malformed input fails closed, it never raises,
+2. a screen is present (`screen_present`),
+3. it is not an SDN hit (`sdn_hit`) and did not error (`screen_error`),
+4. it is **about the party being paid** — `screen.subject == subject` (`screen_subject_mismatch`); a clean screen of a different party does not authorize the transfer,
+5. it **completed before** the transfer fired — `completed_seq < transfer_seq` (`screen_completion_precedes_execution`),
+6. it ran against the pinned SDN-list version (`sdn_version_pinned`),
+7. its status is positively `CLEAR` (`screen_not_clear`) — ALLOW is affirmed, never reached by falling through.
 
 The decision is a structured object — `{decision, rule_cite, failing_assertion, sdn_list_version, evidence}` — so it reads like a control, not a print statement. No SDN list is bundled; a deployer wires its own version-pinned list. The repo ships a tiny synthetic fixture for the tests only.
 
