@@ -1,0 +1,23 @@
+[project]
+name = "agent-funds-gate"
+version = "0.1.0"
+description = "A runnable, fail-closed gate: a value-moving agent action is denied unless a version-pinned OFAC SDN screen completed BEFORE execution. The test goes red when the gate is removed."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Kunjar Bhaduri" }]
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
