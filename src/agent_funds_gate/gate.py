@@ -72,6 +72,16 @@ class FundsGate:
         # different party would otherwise authorize a sanctioned payment.
         if screen.subject != subject:
             return self._deny("screen_subject_mismatch", screen, evidence)
+        # completed_seq is only type-hinted on the ScreenResult dataclass, never
+        # validated -- a caller can hand in anything. A non-int makes the
+        # ordering compare below raise; a bool would silently be treated as
+        # seq 0/1 and could slip past the ordering check. Same fail-closed
+        # rationale as transfer_seq_invalid, applied to the other operand.
+        if screen.completed_seq is not None and (
+            not isinstance(screen.completed_seq, int)
+            or isinstance(screen.completed_seq, bool)
+        ):
+            return self._deny("screen_completed_seq_invalid", screen, evidence)
         if screen.completed_seq is None or screen.completed_seq >= transfer_seq:
             # PENDING (no completed_seq) or completed after the transfer fired.
             return self._deny(ORDERING_ASSERTION, screen, evidence)

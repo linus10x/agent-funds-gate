@@ -188,3 +188,29 @@ def test_cite_carries_precise_ofac_subsection():
     deny = gate.authorize(subject="ACME CORP", transfer_seq=10, screen=None)
     assert deny.rule_cite == OFAC_CITE
     assert "501.604" in deny.rule_cite
+
+
+def test_non_int_completed_seq_fails_closed():
+    """A screen whose completed_seq is a non-int (a str, here) must DENY, not
+    raise TypeError out of the `screen.completed_seq >= transfer_seq` compare.
+    ``completed_seq`` is only type-hinted on the frozen dataclass, never
+    validated -- a caller can hand in anything. Same rationale as
+    transfer_seq_invalid: an exception in a 'should I block?' check can be
+    swallowed by the caller and resolve to 'proceed'."""
+    gate = FundsGate(VERSION)
+    screen = ScreenResult(ScreenStatus.CLEAR, VERSION, "not-a-number", "ACME CORP")
+    d = gate.authorize(subject="ACME CORP", transfer_seq=10, screen=screen)
+    assert d.decision == "DENY"
+    assert d.failing_assertion == "screen_completed_seq_invalid"
+
+
+def test_bool_completed_seq_fails_closed():
+    """A bool is an int subtype in Python (True == 1); completed_seq=True must
+    not be treated as seq 1 and slip through the ordering check to ALLOW. Mirrors
+    the existing bool-exclusion on transfer_seq, applied to the other operand of
+    the same comparison."""
+    gate = FundsGate(VERSION)
+    screen = ScreenResult(ScreenStatus.CLEAR, VERSION, True, "ACME CORP")
+    d = gate.authorize(subject="ACME CORP", transfer_seq=10, screen=screen)
+    assert d.decision == "DENY"
+    assert d.failing_assertion == "screen_completed_seq_invalid"
