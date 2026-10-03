@@ -57,8 +57,7 @@ A second confirmed false-pass, found in the independent review, is reinforced he
 CLEAR screen of party A authorizing a transfer to sanctioned party B. The gate binds the
 screen to the subject and denies on `screen_subject_mismatch`.
 
-Framing: we attacked our own gate to find these. They are defeats we built and closed,
-not a real incident.
+Framing: these are failure cases constructed in testing and closed in code, not a real incident.
 
 ## SR 26-2 context (SSOT-confirmed facts only)
 

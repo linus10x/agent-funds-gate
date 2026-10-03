@@ -61,7 +61,7 @@ pytest tests/test_gate.py::test_race_screen_resolves_after_transfer_denies
 
 ## A note on honesty
 
-This repo demonstrates a *designed* failure mode and the control that closes it. It makes no claim that the gate caught a real production incident — it didn't, and inventing one would be the opposite of the point. We attacked our own gate; here is the assertion that holds it.
+This repo demonstrates a *designed* failure mode and the control that closes it. It makes no claim that the gate caught a real production incident — it didn't, and inventing one would be the opposite of the point. The test below is the assertion that closes it.
 
 ## License
 

@@ -26,7 +26,7 @@ def _rule():
 
 
 print()
-print("agent-funds-gate -- we attacked our own gate and showed it holds.")
+print("agent-funds-gate -- each staged unsafe ordering is denied.")
 print()
 print(f"An agent fires a {AMOUNT} transfer at seq {TRANSFER_SEQ}. The OFAC screen for")
 print(f"the same party does not COMPLETE until seq {race_screen.completed_seq} -- after the money moved.")
