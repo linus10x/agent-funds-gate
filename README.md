@@ -1,6 +1,6 @@
 # agent-funds-gate
 
-A small, runnable, fail-closed control: **a value-moving agent action is denied unless a version-pinned OFAC SDN screen *completed before* the transfer executed.** We attacked our own gate and showed it holds.
+A small, runnable, fail-closed control: **a value-moving agent action is denied unless a version-pinned OFAC SDN screen *completed before* the transfer executed.** I tested the gate against the race it is meant to stop, and it denies it.
 
 ## What broke (the defeat, first)
 
