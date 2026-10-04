@@ -82,7 +82,7 @@ Polarity proof (the claim is falsifiable):
 ```
 # remove the ordering-check block in src/agent_funds_gate/gate.py, then:
 python3 -m pytest tests/test_gate.py::test_race_screen_resolves_after_transfer_denies -q
-# -> RED: the race is allowed again. Restore the block -> 17 passed.
+# -> RED: the race is allowed again. Restore the block -> 19 passed.
 ```
 
 ## What this does NOT catch (scope limits)
