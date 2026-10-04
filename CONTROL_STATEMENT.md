@@ -73,7 +73,7 @@ fail-closed, polarity-proven screen-before-transfer gate is one such demonstrati
 ## Verify the claim (one command, zero install)
 
 ```
-python3 -m pytest -q     # 17 tests green; src is on the path via pyproject
+python3 -m pytest -q     # 19 tests green; src is on the path via pyproject
 python demo/demo.py      # the defeat, then the gate, from a fresh clone
 ```
 
